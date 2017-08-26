@@ -4,6 +4,7 @@ Contains constants and other common variables
 
 """
 import datetime
+import json
 import os
 import sys
 
@@ -18,20 +19,18 @@ class Common(object):
         """
         self.IS_WINDOWS = 'nt' in os.name
         self.PROJECT_DIR = str(os.path.dirname(os.path.realpath(__file__)))
-        self.SETTINGS_FILE_NAME = self.PROJECT_DIR + '/settings.json'
         self.LOGFILE_DIR = '{}/logs/'.format(self.PROJECT_DIR)
-        self.GUI_MODE = False
-
-        print self.PROJECT_DIR
-        print self.LOGFILE_DIR
 
         """
         Setup sys and other args
         """
         sys.path.append(os.path.dirname(self.PROJECT_DIR))
         InitializeDirectories([self.LOGFILE_DIR])
-        # sys.stdout = CustomLogger(self.LOGFILE_DIR, single_file=self.DEBUG)
         CustomLogger(self.LOGFILE_DIR, debug_mode=self.DEBUG)
+
+        with open('settings.json') as settings_file:
+            data = json.load(settings_file)
+            self.influx_credentials = data['influx']
 
     def dump_settings(self):
         for key in self.__dict__:
