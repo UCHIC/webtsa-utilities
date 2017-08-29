@@ -9,6 +9,9 @@ class WaterMLParser:
 
     @staticmethod
     def ExtractSiteDetails(xml_string):
+        if xml_string is None or len(xml_string) == 0:
+            print 'The XML string provided is either empty or None'
+            return None
         soup = BeautifulSoup(xml_string, 'lxml-xml')
         site_soup = soup.site
         if site_soup is None:
@@ -36,6 +39,9 @@ class WaterMLParser:
 
     @staticmethod
     def ExtractSiteCodes(xml_string):
+        if xml_string is None or len(xml_string) == 0:
+            print 'The XML string provided is either empty or None'
+            return None
         soup = BeautifulSoup(xml_string, 'lxml-xml')
         site_soup = soup.sitesResponse
         if site_soup is None:
@@ -47,6 +53,9 @@ class WaterMLParser:
 
     @staticmethod
     def ExtractTimeSeries(xml_string):
+        if xml_string is None or len(xml_string) == 0:
+            print 'The XML string provided is either empty or None'
+            return None
         soup = BeautifulSoup(xml_string, 'lxml-xml')
         series_node = soup.find('timeSeries')
         if series_node is None:

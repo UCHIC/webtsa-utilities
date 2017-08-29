@@ -44,8 +44,6 @@ class InfluxUpdater:
 
     def UpdateSites(self, site_codes):
         for site in site_codes:
-            # if site != 'RB_1300E_A':
-            #     continue
             site_info = self.GetSiteInfo(site)
             if site_info is None:
                 print 'Failed to get site info for Network: {}, Site: {}'.format(self.query_driver.wof, site)
@@ -62,25 +60,7 @@ class InfluxUpdater:
         print 'Updater starting'
         site_codes = self.GetSiteCodes()
         self.UpdateSites(site_codes)
-
-        # print self.influx_client.GetTimeSeries('RB_KF_C', 'AirTemp_HC2S3_avg', 0, 1, 1, end='2017-01-01')
-
-        # self.TestiUtahDriver()
-        # self.TestWebSDLDriver()
-
-    def TestiUtahDriver(self):
-        driver = iUtahDriver()
-        # print driver.GetLoganSites()
-        # print driver.GetDataValues('RedButteCreek', 'RB_1300E_A', 'ODO_Local', 61, 1, 0)
-        # print driver.GetSiteInfo('RB_1300E_A')
-        print driver.GetVariableInfo('RedButteCreek', 'ODO_Local')
-
-    def TestWebSDLDriver(self):
-        driver = WebSDLDriver()
-        # print driver.GetAllSites()
-        # print driver.GetDataValues('KINNI_LOGGER6', 'EnviroDIY_Mayfly_Temp')
-        # print driver.GetSiteInfo('KINNI_LOGGER6')
-        # print driver.GetVariableInfo('EnviroDIY_Mayfly_Temp')
+        # print self.influx_client.GetTimeSeries('RB_KF_C', 'RH_HC2S3', 0, 1, 2)
 
 
 if __name__ == '__main__':

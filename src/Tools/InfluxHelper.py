@@ -7,6 +7,7 @@ from influxdb import DataFrameClient, InfluxDBClient
 class InfluxClient(object):
     def __init__(self, host, port, username, password, database):
         self.client = DataFrameClient(host=host, port=port, username=username, password=password, database=database)
+        self.database = database
         if database is not None and database not in self.GetDatabases():
             self.CreateDatabase(database)
 
@@ -23,16 +24,22 @@ class InfluxClient(object):
 
     @staticmethod
     def GetIdentifierBySeriesDetails(series):
+        if series is None:
+            return None
         return InfluxClient.GetIdentifier(series.site_code, series.variable_code, series.qc_code, series.source_code,
                                           series.method_code)
 
     def AddSeriesToDatabase(self, series):
+        if series is None:
+            return None
         identifier = self.GetIdentifierBySeriesDetails(series)
+        print identifier
         write_success = self.client.write_points(series.datavalues, identifier, protocol='json')
         if not write_success:
             print 'Write failed for series with identifier {}'.format(identifier)
         else:
             print '{} Data points written for time series with identifier {}'.format(len(series.datavalues), identifier)
+        print write_success
 
     def GetTimeSeriesBySeriesDetails(self, series, start='', end=''):
         return self.GetTimeSeries(series.site_code, series.variable_code, series.qc_code, series.source_code,
@@ -40,6 +47,7 @@ class InfluxClient(object):
 
     def GetTimeSeries(self, site_code, var_code, qc_code, source_code, method_code, start='', end=''):
         identifier = self.GetIdentifier(site_code, var_code, qc_code, source_code, method_code)
+        print identifier
         query_string = 'Select {select} from {series}'.format(select='*', series=identifier)
         if len(start) > 0:
             query_string += ' where time > \'{}\''.format(start)
@@ -47,4 +55,4 @@ class InfluxClient(object):
             query_string += ' and time < \'{}\''.format(end)
         elif len(end) > 0:
             query_string += ' where time < \'{}\''.format(end)
-        return self.client.query(query_string)
+        return self.client.query(query_string, database=self.database)
