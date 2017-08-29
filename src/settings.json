@@ -1,9 +1,0 @@
-{
-  "influx": {
-    "host": "localhost",
-    "port": 8086,
-    "username": "test_tsa",
-    "password": "somethingarbitrary",
-    "database": "tsa"
-  }
-}
