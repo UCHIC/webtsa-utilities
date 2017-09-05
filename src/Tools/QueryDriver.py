@@ -52,6 +52,10 @@ class iUtahDriver(QueryDriver):
         REDBUTTE = 'RedButteCreekWOF'
         PROVO = 'ProvoRiverWOF'
 
+        @staticmethod
+        def as_list():
+            return [iUtahDriver.iUtahWOF.LOGAN, iUtahDriver.iUtahWOF.REDBUTTE, iUtahDriver.iUtahWOF.PROVO]
+
     def __init__(self, iutah_wof):
         datavalues_query = 'datavalues?location={network}:{site}&variable={network}:{var}/methodCode={method}/' \
                            'sourceCode={source}/qualityControlLevelCode={qc}&startDate={start}&endDate={end}'
@@ -71,7 +75,6 @@ class iUtahDriver(QueryDriver):
                                                    source=source_code, qc=qc_code, start=start, end=end))
 
     def GetSiteInfo(self, site_code):
-        print 'In site info for {}'.format(site_code)
         return self._base_GetSiteInfo(dict(site=site_code))
 
     def GetVariableInfo(self, variable_code):

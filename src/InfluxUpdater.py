@@ -10,14 +10,14 @@ from influxdb import DataFrameClient, InfluxDBClient
 from Common import APP_SETTINGS
 from Tools.WaterMLParser import *
 from Tools.InfluxHelper import *
-from Tools.QueryDriver import iUtahDriver, WebSDLDriver
+from Tools.QueryDriver import iUtahDriver, WebSDLDriver, QueryDriver
 
 
 class InfluxUpdater:
-    def __init__(self):
+    def __init__(self, wof_driver, influx_client):
         print "Test statement"
-        self.query_driver = iUtahDriver(iUtahDriver.iUtahWOF.REDBUTTE)
-        self.influx_client = InfluxClient(**APP_SETTINGS.influx_credentials)
+        self.query_driver = wof_driver
+        self.influx_client = influx_client
         print self.influx_client.GetDatabases()
 
     def GetSiteCodes(self):
@@ -49,21 +49,40 @@ class InfluxUpdater:
                 print 'Failed to get site info for Network: {}, Site: {}'.format(self.query_driver.wof, site)
                 continue
             for var in site_info.variables:                 # type: Variable
-                details = self.query_driver.GetTimeSeriesValues(site, var.code, var.method, var.source, var.qc)
+                end_time = self.influx_client.GetTimeSeriesEndTime(site, var.code, var.qc, var.source, var.method)
+                if end_time is None:
+                    time_str = ''
+                else:
+                    print 'Database entry found for this series, most recently updated at {}'.format(end_time)
+                    time_str = end_time.strftime('%Y-%m-%dT%H:%M:%S')
+                details = self.query_driver.GetTimeSeriesValues(site, var.code, var.method, var.source, var.qc,
+                                                                start=time_str)
                 if details is None:
                     continue
                 time_series = WaterMLParser.ExtractTimeSeries(details)
-                if time_series.datavalues is not None:
-                    self.influx_client.AddSeriesToDatabase(time_series)
+                if time_series.datavalues is None:
+                    print 'No data for time series'
+                    continue
+                self.influx_client.AddSeriesToDatabase(time_series)
+                del details
+                del time_series
 
     def Start(self):
         print 'Updater starting'
         site_codes = self.GetSiteCodes()
         self.UpdateSites(site_codes)
         # print self.influx_client.GetTimeSeries('RB_KF_C', 'RH_HC2S3', 0, 1, 2)
-
+        # result = self.influx_client.GetTimeSeriesStartTime('RB_KF_C', 'RH_HC2S3', 0, 1, 2)
+        # print result
+        # result = self.influx_client.GetTimeSeriesEndTime('RB_KF_C', 'RH_HC2S3', 0, 1, 2)
+        # print result
 
 if __name__ == '__main__':
     print 'Starting Influx Update tool'
-    updater = InfluxUpdater()
-    updater.Start()
+    influx_client = InfluxClient(**APP_SETTINGS.influx_credentials)
+    for driver in iUtahDriver.iUtahWOF.as_list():
+        try:
+            updater = InfluxUpdater(iUtahDriver(driver), influx_client)
+            updater.Start()
+        except Exception as e:
+            print 'Exception encountered using driver {}: {}'.format(driver, e)
