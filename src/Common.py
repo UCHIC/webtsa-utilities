@@ -28,7 +28,7 @@ class Common(object):
         InitializeDirectories([self.LOGFILE_DIR])
         CustomLogger(self.LOGFILE_DIR, debug_mode=self.DEBUG)
 
-        with open('settings.json') as settings_file:
+        with open(self.PROJECT_DIR + '/settings.json') as settings_file:
             data = json.load(settings_file)
             self.influx_credentials = data['influx']
 
@@ -46,7 +46,7 @@ def InitializeDirectories(directory_list):
 class CustomLogger(object):
     def __init__(self, logfile_dir, debug_mode=False):
         self.terminal = sys.stdout
-        self.std_error = sys.stderr
+        # self.std_error = sys.stderr
         if debug_mode:
             file_name = '{}/Log_{}.txt'.format(logfile_dir, 'File')
         else:
@@ -58,8 +58,10 @@ class CustomLogger(object):
             sys.stderr = self
 
     def write(self, message):
-        self.terminal.write(message)
-        self.LogFile.write(message)
+        to_print = '{}: {}'.format(datetime.datetime.now().strftime('%H-%M-%S'), message)
+        self.terminal.write(to_print)
+        self.LogFile.write(to_print)
+        self.LogFile.flush()
 
 
 APP_SETTINGS = Common(sys.argv)
