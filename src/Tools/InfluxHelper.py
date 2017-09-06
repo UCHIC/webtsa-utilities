@@ -1,8 +1,11 @@
 import datetime
+import urllib
+
 import pandas
 import re
 
-from influxdb import DataFrameClient, InfluxDBClient
+from influxdb import DataFrameClient
+from influxdb.exceptions import InfluxDBClientError
 
 
 class InfluxClient(object):
@@ -11,6 +14,7 @@ class InfluxClient(object):
         self.database = database
         if database is not None and database not in self.GetDatabases():
             self.CreateDatabase(database)
+        self.query_errors = {}
 
     def GetDatabases(self):
         return [db['name'] for db in self.client.get_list_database()]
@@ -20,8 +24,8 @@ class InfluxClient(object):
 
     @staticmethod
     def GetIdentifier(site_code, var_code, qc_code, source_code, method_code):
-        pre_identifier = '{}_{}_{}_{}_{}'.format(site_code, var_code, qc_code, source_code, method_code)
-        return re.sub('[\W]', '_', pre_identifier)
+        pre_identifier = 'wof_{}_{}_{}_{}_{}'.format(site_code, var_code, qc_code, source_code, method_code)
+        return re.sub('[\W]', '_', urllib.quote(pre_identifier, safe=''))
 
     @staticmethod
     def GetIdentifierBySeriesDetails(series):
@@ -29,6 +33,16 @@ class InfluxClient(object):
             return None
         return InfluxClient.GetIdentifier(series.site_code, series.variable_code, series.qc_code, series.source_code,
                                           series.method_code)
+
+    def RunQuery(self, query_string, identifier):
+        try:
+            return self.client.query(query_string, database=self.database)
+        except InfluxDBClientError as e:
+            print 'Query Error for {}: {}'.format(identifier, e.message)
+            if identifier not in self.query_errors.keys():
+                self.query_errors[identifier] = []
+            self.query_errors[identifier].append(e.message)
+        return None
 
     def AddSeriesToDatabase(self, series):
         if series is None:
@@ -55,13 +69,15 @@ class InfluxClient(object):
             query_string += ' and time < \'{}\''.format(end)
         elif len(end) > 0:
             query_string += ' where time < \'{}\''.format(end)
-        return self.client.query(query_string, database=self.database)
+            return self.RunQuery(query_string, identifier)
+        return None
+
 
     def GetTimeSeriesStartTime(self, site_code, var_code, qc_code, source_code, method_code):
         identifier = self.GetIdentifier(site_code, var_code, qc_code, source_code, method_code)
         print 'Getting start time for ' + identifier
         query_string = 'Select first(DataValue), time from {identifier}'.format(identifier=identifier)
-        result = self.client.query(query_string, database=self.database)
+        result = self.RunQuery(query_string, identifier)
         if result is not None and len(result) == 1:
             dataframe = result[identifier]  # type: pandas.DataFrame
             return dataframe.first_valid_index().to_pydatetime()
@@ -71,7 +87,7 @@ class InfluxClient(object):
         identifier = self.GetIdentifier(site_code, var_code, qc_code, source_code, method_code)
         print 'Getting end time for ' + identifier
         query_string = 'Select last(DataValue), time from {identifier}'.format(identifier=identifier)
-        result = self.client.query(query_string, database=self.database)
+        result = self.RunQuery(query_string, identifier)
         if result is not None and len(result) == 1:
             dataframe = result[identifier]  # type: pandas.DataFrame
             return dataframe.first_valid_index().to_pydatetime()

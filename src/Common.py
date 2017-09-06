@@ -46,7 +46,6 @@ def InitializeDirectories(directory_list):
 class CustomLogger(object):
     def __init__(self, logfile_dir, debug_mode=False):
         self.terminal = sys.stdout
-        # self.std_error = sys.stderr
         if debug_mode:
             file_name = '{}/Log_{}.txt'.format(logfile_dir, 'File')
         else:
@@ -57,11 +56,20 @@ class CustomLogger(object):
         if not debug_mode:
             sys.stderr = self
 
+    def prefix_date(self, message):
+        date_string = datetime.datetime.now().strftime('%H-%M-%S')
+        return '{date}: {message}\n'.format(date=date_string, message=message)
+
     def write(self, message):
-        to_print = '{}: {}'.format(datetime.datetime.now().strftime('%H-%M-%S'), message)
-        self.terminal.write(to_print)
-        self.LogFile.write(to_print)
-        self.LogFile.flush()
+        if len(message) > 0 and not message.isspace():
+            self.terminal.write(self.prefix_date(message))
+            self.LogFile.write(self.prefix_date(message))
+            self.LogFile.flush()
+        else:
+            return
+
+    def flush(self):
+        pass
 
 
 APP_SETTINGS = Common(sys.argv)

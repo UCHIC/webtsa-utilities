@@ -1,5 +1,5 @@
 import requests
-
+import urllib
 
 class QueryDriver(object):
     def __init__(self, name, url, wof, network, query_site_info, query_variable, query_datavalues, query_all_sites):
@@ -14,6 +14,8 @@ class QueryDriver(object):
         self.query_all_sites = query_all_sites
 
     def RunQuery(self, query_string):
+        # encoded_string = urllib.quote(query_string, safe='')
+        print query_string
         query_response = requests.get(query_string)
         if '200' not in str(query_response.status_code):
             print 'Response was not successful: {}'.format(query_response.status_code)
@@ -21,6 +23,11 @@ class QueryDriver(object):
             print 'Message: {}'.format(query_response.text)
             return None
         return query_response.text
+
+    def SanitizeArgs(self, query_args):
+        for key, value in query_args.iteritems():
+            query_args[key] = urllib.quote(value, safe='')
+        return query_args
 
     def ChangeWOFSource(self, new_wof):
         self.wof = new_wof
@@ -31,15 +38,15 @@ class QueryDriver(object):
         return self.RunQuery(query)
 
     def _base_GetTimeSeriesValues(self, query_args):
-        query = self.base_url + self.query_datavalues.format(network=self.network, **query_args)
+        query = self.base_url + self.query_datavalues.format(network=self.network, **self.SanitizeArgs(query_args))
         return self.RunQuery(query)
 
     def _base_GetSiteInfo(self, query_args):
-        query = self.base_url + self.query_site_info.format(network=self.network, **query_args)
+        query = self.base_url + self.query_site_info.format(network=self.network, **self.SanitizeArgs(query_args))
         return self.RunQuery(query)
 
     def _base_GetVariableInfo(self, query_args):
-        query = self.base_url + self.query_variable.format(network=self.network, **query_args)
+        query = self.base_url + self.query_variable.format(network=self.network, **self.SanitizeArgs(query_args))
         return self.RunQuery(query)
 
     def __str__(self):
@@ -102,7 +109,6 @@ class WebSDLDriver(QueryDriver):
     def GetVariableInfo(self, variable_code):
         return self._base_GetVariableInfo(dict(var=variable_code, network=self.network))
 
-    def GetTimeSeriesValues(self, site_code, variable_code, start='', end=''):
-        return self._base_GetTimeSeriesValues(dict(site=site_code, var=variable_code, start=start,
-                                                                 end=end, network=self.network))
+    def GetTimeSeriesValues(self, site_code, variable_code, method_code='', source_code='', qc_code='',  start='', end=''):
+        return self._base_GetTimeSeriesValues(dict(site=site_code, var=variable_code, start=start, end=end))
 

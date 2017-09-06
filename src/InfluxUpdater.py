@@ -55,6 +55,7 @@ class InfluxUpdater:
                 else:
                     print 'Database entry found for this series, most recently updated at {}'.format(end_time)
                     time_str = end_time.strftime('%Y-%m-%dT%H:%M:%S')
+
                 details = self.query_driver.GetTimeSeriesValues(site, var.code, var.method, var.source, var.qc,
                                                                 start=time_str)
                 if details is None:
@@ -70,6 +71,7 @@ class InfluxUpdater:
     def Start(self):
         print 'Updater starting'
         site_codes = self.GetSiteCodes()
+        print site_codes
         self.UpdateSites(site_codes)
         # print self.influx_client.GetTimeSeries('RB_KF_C', 'RH_HC2S3', 0, 1, 2)
         # result = self.influx_client.GetTimeSeriesStartTime('RB_KF_C', 'RH_HC2S3', 0, 1, 2)
@@ -80,9 +82,15 @@ class InfluxUpdater:
 if __name__ == '__main__':
     print 'Starting Influx Update tool'
     influx_client = InfluxClient(**APP_SETTINGS.influx_credentials)
-    for driver in iUtahDriver.iUtahWOF.as_list():
-        try:
-            updater = InfluxUpdater(iUtahDriver(driver), influx_client)
-            updater.Start()
-        except Exception as e:
-            print 'Exception encountered using driver {}: {}'.format(driver, e)
+    updater = InfluxUpdater(WebSDLDriver(), influx_client)
+    updater.Start()
+
+    for identifier, message in updater.influx_client.query_errors.iteritems():
+        print '{}: {}'.format(identifier, message)
+
+    # for driver in iUtahDriver.iUtahWOF.as_list():
+    #     try:
+    #         updater = InfluxUpdater(iUtahDriver(driver), influx_client)
+    #         updater.Start()
+    #     except Exception as e:
+    #         print 'Exception encountered using driver {}: {}'.format(driver, e)
