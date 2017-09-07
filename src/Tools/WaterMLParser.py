@@ -60,20 +60,28 @@ class WaterMLParser:
         series_node = soup.find('timeSeries')
         if series_node is None:
             print 'Could not find timeSeries'
-            return
-        series = TimeSeries(series_node.sourceInfo.siteCode.contents[0],
-                            series_node.variable.variableCode.contents[0],
-                            series_node.method.methodCode.contents[0],
-                            # series_node.censorCode.censorCode.contents[0]
-                            series_node.source.sourceCode.contents[0],
-                            series_node.qualityControlLevel.qualityControlLevelCode.contents[0])
+            return None
+        try:
+            series = TimeSeries(series_node.sourceInfo.siteCode.contents[0],
+                                series_node.variable.variableCode.contents[0],
+                                series_node.method.methodCode.contents[0],
+                                series_node.source.sourceCode.contents[0],
+                                series_node.qualityControlLevel.qualityControlLevelCode.contents[0],
+                                series_node.sourceInfo.siteCode.attrs['siteID'],
+                                series_node.variable.variableCode.attrs['variableID'],
+                                series_node.method.attrs['methodID'],
+                                series_node.source.attrs['sourceID'],
+                                series_node.qualityControlLevel.attrs['qualityControlLevelID'])
 
-        values = [(dv.contents[0], re.sub('[T]', ' ', dv.attrs['dateTime']), dv.attrs['timeOffset']) for dv
-                  in series_node.values.children if type(dv) == Tag and 'dateTime' in dv.attrs]
-        series.datavalues = pandas.DataFrame(values, columns=['DataValue', 'DateTime', 'UTCOffset'])
-        series.datavalues['DateTime'] = pandas.to_datetime(series.datavalues['DateTime'])
-        series.datavalues.set_index(['DateTime'], inplace=True)
-        return series
+            values = [(dv.contents[0], re.sub('[T]', ' ', dv.attrs['dateTime']), dv.attrs['timeOffset']) for dv
+                      in series_node.values.children if type(dv) == Tag and 'dateTime' in dv.attrs]
+            series.datavalues = pandas.DataFrame(values, columns=['DataValue', 'DateTime', 'UTCOffset'])
+            series.datavalues['DateTime'] = pandas.to_datetime(series.datavalues['DateTime'])
+            series.datavalues.set_index(['DateTime'], inplace=True)
+            return series
+        except Exception as e:
+            print 'No time series values were found'
+        return None
 
 
 class Variable:
@@ -86,7 +94,7 @@ class Variable:
         self.qc = ''
 
     def __str__(self):
-        return '{}: {}; {}, {}, {}, {}'.format(self.id, self.name, self.code, self.method, self.source, self.qc)
+        return '{}: {}; {}, {}, {}, {}'.format(self.id, self.name, self.code, self.qc, self.method, self.source)
 
 
 class Site:
@@ -110,12 +118,18 @@ class SiteDetails(object):
 
 
 class TimeSeries(object):
-    def __init__(self, site_code, variable_code, method_code, source_code, qc_code):
+    def __init__(self, site_code, variable_code, method_code, source_code, qc_code,
+                 site_id, variable_id, method_id, source_id, qc_id):
         self.site_code = site_code  # type: str
         self.variable_code = variable_code  # type: str
         self.method_code = method_code  # type: str
         self.source_code = source_code  # type: str
         self.qc_code = qc_code  # type: str
+        self.site_id = site_id  # type: str
+        self.variable_id = variable_id  # type: str
+        self.method_id = method_id  # type: str
+        self.source_id = source_id  # type: str
+        self.qc_id = qc_id  # type: str
         self.datavalues = None  # type: pandas.DataFrame
 
     @classmethod

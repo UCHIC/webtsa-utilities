@@ -23,16 +23,32 @@ class InfluxClient(object):
         self.client.create_database(database_name)
 
     @staticmethod
-    def GetIdentifier(site_code, var_code, qc_code, source_code, method_code):
-        pre_identifier = 'wof_{}_{}_{}_{}_{}'.format(site_code, var_code, qc_code, source_code, method_code)
+    def GetIdentifier(site_code, var_code, qc_id, source_id, method_id):
+        """
+        InfluxDB Identifiers:
+        For the following time series:
+            Turbidity; Campbell_OBS-3+_Turb, 1, 67, 2
+        Format as 'wof_{site_code}_{var_code}_{qc_id}_{source_id}_{method_id}'
+            wof_PUPP2S_Campbell_OBS_3+_Turb_Raw_1_67_2
+        Encode as a URI (to remove invalid characters while keeping uniqueness)
+            wof_PUPP2S_Campbell_OBS_3%2B_Turb_1_67_2
+        Replace all non-word characters with an underscore
+            wof_PUPP2S_Campbell_OBS_3_2B_Turb_1_67_2
+
+        Example python code:
+        def GetIdentifier(site_code, var_code, qc_id, source_id, method_id):
+            pre_identifier = 'wof_{}_{}_{}_{}_{}'.format(site_code, var_code, qc_id, source_id, method_id)
+            return re.sub('[\W]', '_', urllib.quote(pre_identifier, safe=''))
+        """
+        pre_identifier = 'wof_{}_{}_{}_{}_{}'.format(site_code, var_code, qc_id, source_id, method_id)
         return re.sub('[\W]', '_', urllib.quote(pre_identifier, safe=''))
 
     @staticmethod
     def GetIdentifierBySeriesDetails(series):
         if series is None:
             return None
-        return InfluxClient.GetIdentifier(series.site_code, series.variable_code, series.qc_code, series.source_code,
-                                          series.method_code)
+        return InfluxClient.GetIdentifier(series.site_code, series.variable_code, series.qc_id, series.source_id,
+                                          series.method_id)
 
     def RunQuery(self, query_string, identifier):
         try:

@@ -30,8 +30,6 @@ class InfluxUpdater:
         if redbutte_site_xml is not None:
             site_details = WaterMLParser.ExtractSiteDetails(redbutte_site_xml)
             print site_details
-            for variable in site_details.variables:
-                print variable
             return site_details
         else:
             print 'Site query failed'
@@ -49,29 +47,33 @@ class InfluxUpdater:
                 print 'Failed to get site info for Network: {}, Site: {}'.format(self.query_driver.wof, site)
                 continue
             for var in site_info.variables:                 # type: Variable
-                end_time = self.influx_client.GetTimeSeriesEndTime(site, var.code, var.qc, var.source, var.method)
-                if end_time is None:
-                    time_str = ''
-                else:
-                    print 'Database entry found for this series, most recently updated at {}'.format(end_time)
-                    time_str = end_time.strftime('%Y-%m-%dT%H:%M:%S')
+                try:
+                    last_entry = self.influx_client.GetTimeSeriesEndTime(site, var.code, var.qc, var.source, var.method)
+                    if last_entry is None:
+                        begin_time = ''
+                        end_time = ''
+                    else:
+                        print 'Database entry found for this series, most recently updated at {}'.format(last_entry)
+                        begin_time = (last_entry + datetime.timedelta(seconds=1)).strftime('%Y-%m-%dT%H:%M:%S')
+                        end_time = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S')
 
-                details = self.query_driver.GetTimeSeriesValues(site, var.code, var.method, var.source, var.qc,
-                                                                start=time_str)
-                if details is None:
-                    continue
-                time_series = WaterMLParser.ExtractTimeSeries(details)
-                if time_series.datavalues is None:
-                    print 'No data for time series'
-                    continue
-                self.influx_client.AddSeriesToDatabase(time_series)
-                del details
-                del time_series
+                    details = self.query_driver.GetTimeSeriesValues(site, var.code, var.method, var.source, var.qc,
+                                                                    start=begin_time, end=end_time)
+                    if details is None:
+                        continue
+                    time_series = WaterMLParser.ExtractTimeSeries(details)
+                    if time_series is None or time_series.datavalues is None:
+                        print 'No data for time series'
+                        continue
+                    self.influx_client.AddSeriesToDatabase(time_series)
+                    del details
+                    del time_series
+                except Exception as e:
+                    print 'Exception encountered while attempting to update {}:\n{}'.format(var, e)
 
     def Start(self):
         print 'Updater starting'
         site_codes = self.GetSiteCodes()
-        print site_codes
         self.UpdateSites(site_codes)
         # print self.influx_client.GetTimeSeries('RB_KF_C', 'RH_HC2S3', 0, 1, 2)
         # result = self.influx_client.GetTimeSeriesStartTime('RB_KF_C', 'RH_HC2S3', 0, 1, 2)
@@ -92,5 +94,8 @@ if __name__ == '__main__':
     #     try:
     #         updater = InfluxUpdater(iUtahDriver(driver), influx_client)
     #         updater.Start()
+    #         for identifier, message in updater.influx_client.query_errors.iteritems():
+    #             print '{}: {}'.format(identifier, message)
     #     except Exception as e:
     #         print 'Exception encountered using driver {}: {}'.format(driver, e)
+

@@ -26,7 +26,7 @@ class QueryDriver(object):
 
     def SanitizeArgs(self, query_args):
         for key, value in query_args.iteritems():
-            query_args[key] = urllib.quote(value, safe='')
+            query_args[key] = urllib.quote(value, safe=':')
         return query_args
 
     def ChangeWOFSource(self, new_wof):
