@@ -54,7 +54,7 @@ class InfluxUpdater:
                         end_time = ''
                     else:
                         print 'Database entry found for this series, most recently updated at {}'.format(last_entry)
-                        begin_time = (last_entry + datetime.timedelta(seconds=1)).strftime('%Y-%m-%dT%H:%M:%S')
+                        begin_time = (last_entry + datetime.timedelta(seconds=0)).strftime('%Y-%m-%dT%H:%M:%S')
                         end_time = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S')
 
                     details = self.query_driver.GetTimeSeriesValues(site, var.code, var.method, var.source, var.qc,

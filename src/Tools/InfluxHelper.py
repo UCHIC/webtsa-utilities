@@ -88,7 +88,6 @@ class InfluxClient(object):
             return self.RunQuery(query_string, identifier)
         return None
 
-
     def GetTimeSeriesStartTime(self, site_code, var_code, qc_code, source_code, method_code):
         identifier = self.GetIdentifier(site_code, var_code, qc_code, source_code, method_code)
         print 'Getting start time for ' + identifier
