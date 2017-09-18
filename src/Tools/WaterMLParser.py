@@ -1,7 +1,7 @@
 import pandas
 import re
 from bs4 import BeautifulSoup, NavigableString, Tag
-
+from Common import APP_SETTINGS
 
 class WaterMLParser:
     def __init__(self):
@@ -9,6 +9,8 @@ class WaterMLParser:
 
     @staticmethod
     def ExtractSiteDetails(xml_string):
+        if APP_SETTINGS.VERBOSE:
+            print('Extracting site details from XML string: \n{}'.format(xml_string))
         if xml_string is None or len(xml_string) == 0:
             print 'The XML string provided is either empty or None'
             return None
@@ -39,6 +41,8 @@ class WaterMLParser:
 
     @staticmethod
     def ExtractSiteCodes(xml_string):
+        if APP_SETTINGS.VERBOSE:
+            print('Extracting site codes from XML string: \n{}'.format(xml_string))
         if xml_string is None or len(xml_string) == 0:
             print 'The XML string provided is either empty or None'
             return None
@@ -53,6 +57,8 @@ class WaterMLParser:
 
     @staticmethod
     def ExtractTimeSeries(xml_string):
+        if APP_SETTINGS.VERBOSE:
+            print('Extracting time series values from XML string: \n{}'.format(xml_string))
         if xml_string is None or len(xml_string) == 0:
             print 'The XML string provided is either empty or None'
             return None

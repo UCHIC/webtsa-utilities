@@ -11,6 +11,7 @@ import sys
 
 class Common(object):
     def __init__(self, args):
+        self.script_name = os.path.basename(args[0])[:-3]
         self.DEBUG = True if '--debug' in args else False
         self.VERBOSE = True if '--verbose' in args or self.DEBUG else False
 
@@ -26,11 +27,13 @@ class Common(object):
         """
         sys.path.append(os.path.dirname(self.PROJECT_DIR))
         InitializeDirectories([self.LOGFILE_DIR])
-        CustomLogger(self.LOGFILE_DIR, debug_mode=self.DEBUG)
+        CustomLogger(self.LOGFILE_DIR, self.script_name, debug_mode=self.DEBUG)
 
         with open(self.PROJECT_DIR + '/settings.json') as settings_file:
             data = json.load(settings_file)
             self.influx_credentials = data['influx']
+            self.tsa_catalog_source = data['tsa_catalog_source']
+            self.tsa_catalog_destination = data['tsa_catalog_destination']
 
     def dump_settings(self):
         for key in self.__dict__:
@@ -44,12 +47,13 @@ def InitializeDirectories(directory_list):
 
 
 class CustomLogger(object):
-    def __init__(self, logfile_dir, debug_mode=False):
+    def __init__(self, logfile_dir, script_name, debug_mode=False):
         self.terminal = sys.stdout
         if debug_mode:
-            file_name = '{}/Log_{}.txt'.format(logfile_dir, 'File')
+            file_name = '{}/Log_{}_{}.txt'.format(logfile_dir, script_name, 'File')
         else:
-            file_name = '{}/Log_{}.txt'.format(logfile_dir, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+            file_name = '{}/Log_{}_{}.txt'.format(logfile_dir, script_name,
+                                                  datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         self.LogFile = open(file_name, mode='w')
 
         sys.stdout = self

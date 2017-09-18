@@ -41,6 +41,9 @@ class InfluxUpdater:
         return WaterMLParser.ExtractTimeSeries(details)
 
     def UpdateSites(self, site_codes):
+        if site_codes is None:
+            print 'ERROR: No site codes supplied, cannot be processed'
+            return
         for site in site_codes:
             site_info = self.GetSiteInfo(site)
             if site_info is None:

@@ -1,9 +1,7 @@
 import pandas as pd
 import psycopg2
+from Common import APP_SETTINGS
 from sqlalchemy import create_engine
-
-
-
 
 
 def update_catalog():
@@ -58,29 +56,32 @@ def update_catalog():
         WHERE r.ValueCount >0;
     """
 
-    from_conn = create_engine('postgresql://admin_1:pinkbananastastegross@wpfweb1.uwrl.usu.edu:5432/odm2')
+    connection_string = 'postgresql://{username}:{password}@{host}:{port}/{database}'
+    source_url = connection_string.format(**APP_SETTINGS.tsa_catalog_source)
+    destination_url = connection_string.format(**APP_SETTINGS.tsa_catalog_destination)
+
+    from_conn = create_engine(source_url)
     values = pd.read_sql(script, from_conn)
 
-    print(values)
-
-
-
-
-    to_conn = create_engine('postgresql://admin_1:pinkbananastastegross@wpfweb1.uwrl.usu.edu:5432/tsa_catalog')
+    if APP_SETTINGS.VERBOSE:
+        print(values)
+    to_conn = create_engine(destination_url)
 
     # empty table
     conn = to_conn.connect()
     result = conn.execute('DELETE FROM public."DataSeries"')
 
+    if APP_SETTINGS.VERBOSE:
+        print(result)
 
-    #fill table
+    # fill table
     values.to_sql(name="DataSeries", con=to_conn, if_exists="append", index=False)
-
-
-
+    return True
 
 
 if __name__ == "__main__":
-    import timeit
-    time = timeit.Timer(update_catalog())
-    print(str(time))
+    if update_catalog():
+        print('Catalog updated without error')
+    # import timeit
+    # time = timeit.Timer(timer=update_catalog())
+    # print(str(time))

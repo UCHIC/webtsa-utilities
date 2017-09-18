@@ -5,5 +5,19 @@
     "username": "test_tsa",
     "password": "somethingarbitrary",
     "database": "tsa"
+  },
+  "tsa_catalog_source": {
+    "host": "localhost",
+    "port": 8086,
+    "username": "test_tsa",
+    "password": "somethingarbitrary",
+    "database": "tsa"
+  },
+  "tsa_catalog_destination": {
+    "host": "localhost",
+    "port": 8086,
+    "username": "test_tsa",
+    "password": "somethingarbitrary",
+    "database": "tsa"
   }
 }
