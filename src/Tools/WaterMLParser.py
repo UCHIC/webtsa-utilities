@@ -90,6 +90,30 @@ class WaterMLParser:
         return None
 
 
+    @staticmethod
+    def ExtractTimeSeriesDataPoints(xml_string):
+        if APP_SETTINGS.VERBOSE:
+            print('Extracting time series values from XML string: \n{}'.format(xml_string))
+        if xml_string is None or len(xml_string) == 0:
+            print 'The XML string provided is either empty or None'
+            return None
+        soup = BeautifulSoup(xml_string, 'lxml-xml')
+        series_node = soup.find('timeSeries')
+        if series_node is None:
+            print 'Could not find timeSeries'
+            return None
+        try:
+            values = [(dv.contents[0], re.sub('[T]', ' ', dv.attrs['dateTime']), dv.attrs['timeOffset']) for dv
+                      in series_node.values.children if type(dv) == Tag and 'dateTime' in dv.attrs]
+            datavalues = pandas.DataFrame(values, columns=['DataValue', 'DateTime', 'UTCOffset'])
+            datavalues['DateTime'] = pandas.to_datetime(datavalues['DateTime'])
+            datavalues.set_index(['DateTime'], inplace=True)
+            return datavalues
+        except Exception as e:
+            print 'No time series values were found'
+        return None
+
+
 class Variable:
     def __init__(self):
         self.code = ''

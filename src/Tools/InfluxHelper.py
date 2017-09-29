@@ -44,6 +44,10 @@ class InfluxClient(object):
         return re.sub('[\W]', '_', urllib.quote(pre_identifier, safe=''))
 
     @staticmethod
+    def GetEnviroDiyIdentifier(result_uuid):
+        return 'uuid_{}'.format(result_uuid.replace('-', '_'))
+
+    @staticmethod
     def GetIdentifierBySeriesDetails(series):
         if series is None:
             return None
@@ -70,6 +74,14 @@ class InfluxClient(object):
             print 'Write failed for series with identifier {}'.format(identifier)
         else:
             print '{} Data points written for time series with identifier {}'.format(len(series.datavalues), identifier)
+
+    def AddDataFrameToDatabase(self, datavalues, identifier):
+        print 'Writing data points for ' + identifier
+        write_success = self.client.write_points(datavalues, identifier, protocol='json', batch_size=20000)
+        if not write_success:
+            print 'Write failed for series with identifier {}'.format(identifier)
+        else:
+            print '{} Data points written for time series with identifier {}'.format(len(datavalues), identifier)
 
     def GetTimeSeriesBySeriesDetails(self, series, start='', end=''):
         return self.GetTimeSeries(series.site_code, series.variable_code, series.qc_code, series.source_code,
@@ -98,8 +110,7 @@ class InfluxClient(object):
             return dataframe.first_valid_index().to_pydatetime()
         return None
 
-    def GetTimeSeriesEndTime(self, site_code, var_code, qc_code, source_code, method_code):
-        identifier = self.GetIdentifier(site_code, var_code, qc_code, source_code, method_code)
+    def GetTimeSeriesEndTime(self, identifier):
         print 'Getting end time for ' + identifier
         query_string = 'Select last(DataValue), time from {identifier}'.format(identifier=identifier)
         result = self.RunQuery(query_string, identifier)
@@ -107,3 +118,13 @@ class InfluxClient(object):
             dataframe = result[identifier]  # type: pandas.DataFrame
             return dataframe.first_valid_index().to_pydatetime()
         return None
+
+    # def GetTimeSeriesEndTime(self, site_code, var_code, qc_code, source_code, method_code):
+    #     identifier = self.GetIdentifier(site_code, var_code, qc_code, source_code, method_code)
+    #     print 'Getting end time for ' + identifier
+    #     query_string = 'Select last(DataValue), time from {identifier}'.format(identifier=identifier)
+    #     result = self.RunQuery(query_string, identifier)
+    #     if result is not None and len(result) == 1:
+    #         dataframe = result[identifier]  # type: pandas.DataFrame
+    #         return dataframe.first_valid_index().to_pydatetime()
+    #     return None

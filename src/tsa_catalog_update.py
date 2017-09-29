@@ -1,7 +1,7 @@
 import pandas as pd
 import psycopg2
 from Common import APP_SETTINGS
-from sqlalchemy import create_engine
+import sqlalchemy
 
 
 def update_catalog():
@@ -21,13 +21,16 @@ def update_catalog():
             o.OrganizationName AS "SourceOrganization", o.OrganizationDescription AS "SourceDescription", 
             ac.BeginDateTime AS "BeginDateTime", ac.EndDateTime AS "EndDateTime", 
             ac.BeginDateTimeUTCOffset AS "UTCOffset", r.ValueCount AS "NumberObservations", 
-            ac.EndDateTime AS "DateLastUpdated", 1 AS "IsActive",
+            ac.EndDateTime AS "DateLastUpdated", 1 AS "IsActive", r.resultuuid AS "ResultUUID",
             ('http://envirodiysandbox.usu.edu/wofpy/rest/1_1/GetValues?' || 
             'location=wofpy:' || sf.SamplingFeatureCode || '&variable=wofpy:' || v.VariableCode || '&methodCode=' || 
             CAST(me.MethodID AS varchar(15)) || '&sourceCode=' || CAST(o.OrganizationID AS varchar(15)) || 
-            '&qualityControlLevelCode=' || pl.ProcessingLevelCode || '&startDate=&endDate=') AS "GetDataURL" 
-        FROM odm2.Results AS r
-        JOIN odm2.Variables AS v 
+            '&qualityControlLevelCode=' || pl.ProcessingLevelCode || '&startDate=&endDate=') AS "GetDataURL", 
+            ('http://wpfdbs.uwrl.usu.edu:8086/query?u=web_client&p=password&db=envirodiy&q=SELECT%20%2A%20FROM%20'||
+            '%22uuid_' || replace( cast(r.resultuuid AS TEXT), '-', '_' ) || '%22') AS "GetDataInflux", 
+              'uuid_' || replace( cast(r.resultuuid AS text), '-', '_' ) AS "InfluxIdentifier"
+        FROM odm2.results AS r
+        JOIN odm2.variables AS v 
         ON r.VariableID = v.VariableID
         JOIN odm2.ProcessingLevels AS pl
         ON r.ProcessingLevelID = pl.ProcessingLevelID
@@ -60,19 +63,21 @@ def update_catalog():
     source_url = connection_string.format(**APP_SETTINGS.tsa_catalog_source)
     destination_url = connection_string.format(**APP_SETTINGS.tsa_catalog_destination)
 
-    from_conn = create_engine(source_url)
-    values = pd.read_sql(script, from_conn)
+    from_conn = sqlalchemy.create_engine(source_url)
+    values = pd.read_sql(sqlalchemy.text(script), from_conn)
 
     if APP_SETTINGS.VERBOSE:
         print(values)
-    to_conn = create_engine(destination_url)
+    to_conn = sqlalchemy.create_engine(destination_url)
 
-    # empty table
+    # empty table and reset sequence counter
     conn = to_conn.connect()
-    result = conn.execute('DELETE FROM public."DataSeries"')
+    delete_result = conn.execute('DELETE FROM public."DataSeries"')
+    sequence_result = conn.execute('ALTER SEQUENCE "Catalog".series_increment RESTART WITH 1')
 
     if APP_SETTINGS.VERBOSE:
-        print(result)
+        print(delete_result)
+        print(sequence_result)
 
     # fill table
     values.to_sql(name="DataSeries", con=to_conn, if_exists="append", index=False)

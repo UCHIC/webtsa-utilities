@@ -3,6 +3,9 @@ import pandas
 import re
 import requests
 import sys
+import urllib
+from influxdb import DataFrameClient
+from influxdb.exceptions import InfluxDBClientError
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 from influxdb import DataFrameClient, InfluxDBClient
@@ -74,15 +77,47 @@ class InfluxUpdater:
                 except Exception as e:
                     print 'Exception encountered while attempting to update {}:\n{}'.format(var, e)
 
+    def RunQuery(self, query_string):
+        # encoded_string = urllib.quote(query_string, safe='')
+        print query_string
+        query_response = requests.get(query_string)
+        if '200' not in str(query_response.status_code):
+            print 'Response was not successful: {}'.format(query_response.status_code)
+            print 'URL: {}'.format(query_string)
+            print 'Message: {}'.format(query_response.text)
+            return None
+        return query_response.text
+
     def Start(self):
-        print 'Updater starting'
-        site_codes = self.GetSiteCodes()
-        self.UpdateSites(site_codes)
-        # print self.influx_client.GetTimeSeries('RB_KF_C', 'RH_HC2S3', 0, 1, 2)
-        # result = self.influx_client.GetTimeSeriesStartTime('RB_KF_C', 'RH_HC2S3', 0, 1, 2)
-        # print result
-        # result = self.influx_client.GetTimeSeriesEndTime('RB_KF_C', 'RH_HC2S3', 0, 1, 2)
-        # print result
+        values = self.query_driver.GetSitesFromCatalog()  # type: pandas.DataFrame
+        print 'Got dataframe!'
+        influx_urls = []
+        for i in range(0, len(values)):
+            identifier = values.get_value(i, 'InfluxIdentifier')
+            influx_url = values.get_value(i, 'GetDataInflux')
+            influx_urls.append(influx_url)
+            data_url = values.get_value(i, 'GetDataURL')
+            last_entry = influx_client.GetTimeSeriesEndTime(identifier)
+            if last_entry is None:
+                begin_time = ''
+                end_time = ''
+            else:
+                print 'Database entry found for this series, most recently updated at {}'.format(last_entry)
+                begin_time = (last_entry + datetime.timedelta(seconds=0)).strftime('%Y-%m-%dT%H:%M:%S')
+                end_time = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S')
+            result = self.RunQuery(data_url.format(begin_time, end_time))
+            time_series = WaterMLParser.ExtractTimeSeriesDataPoints(result)
+            print 'Influx: {}'.format(influx_url)
+
+            if time_series is None:
+                print 'No data for time series'
+                continue
+            self.influx_client.AddDataFrameToDatabase(time_series, identifier)
+            del time_series
+
+        for url in influx_urls:
+            print url
+        return
 
 if __name__ == '__main__':
     print 'Starting Influx Update tool'
@@ -92,13 +127,4 @@ if __name__ == '__main__':
 
     for identifier, message in updater.influx_client.query_errors.iteritems():
         print '{}: {}'.format(identifier, message)
-
-    # for driver in iUtahDriver.iUtahWOF.as_list():
-    #     try:
-    #         updater = InfluxUpdater(iUtahDriver(driver), influx_client)
-    #         updater.Start()
-    #         for identifier, message in updater.influx_client.query_errors.iteritems():
-    #             print '{}: {}'.format(identifier, message)
-    #     except Exception as e:
-    #         print 'Exception encountered using driver {}: {}'.format(driver, e)
 

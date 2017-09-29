@@ -1,5 +1,9 @@
 import requests
 import urllib
+import pandas as pd
+import psycopg2
+from Common import APP_SETTINGS
+import sqlalchemy
 
 class QueryDriver(object):
     def __init__(self, name, url, wof, network, query_site_info, query_variable, query_datavalues, query_all_sites):
@@ -112,3 +116,49 @@ class WebSDLDriver(QueryDriver):
     def GetTimeSeriesValues(self, site_code, variable_code, method_code='', source_code='', qc_code='',  start='', end=''):
         return self._base_GetTimeSeriesValues(dict(site=site_code, var=variable_code, start=start, end=end))
 
+    def GetSitesFromCatalog(self):
+        # type: () -> pd.DataFrame
+        script = """   
+            SELECT  
+                ('http://envirodiysandbox.usu.edu/wofpy/rest/1_1/GetValues?' || 
+                'location=wofpy:' || sf.SamplingFeatureCode || '&variable=wofpy:' || v.VariableCode || '&methodCode=' 
+                || CAST(me.MethodID AS VARCHAR(15)) || '&sourceCode=' || CAST(o.OrganizationID AS VARCHAR(15)) || 
+                '&qualityControlLevelCode=' || pl.ProcessingLevelCode || '&startDate={}&endDate={}') AS "GetDataURL", 
+                ('http://wpfdbs.uwrl.usu.edu:8086/query?u=web_client&p=password&db=envirodiy&q=SELECT%20%2A%20FROM%20'||
+                '%22uuid_' || replace( cast(r.resultuuid AS TEXT), '-', '_' ) || '%22') AS "GetDataInflux", 
+                'uuid_' || replace( cast(r.resultuuid AS TEXT), '-', '_' ) AS "InfluxIdentifier"
+            FROM odm2.results AS r
+            JOIN odm2.variables AS v 
+            ON r.VariableID = v.VariableID
+            JOIN odm2.ProcessingLevels AS pl
+            ON r.ProcessingLevelID = pl.ProcessingLevelID
+            JOIN odm2.FeatureActions AS fa
+            ON r.FeatureActionID = fa.FeatureActionID
+            JOIN odm2.SamplingFeatures AS sf
+            ON fa.SamplingFeatureID = sf.SamplingFeatureID
+            JOIN odm2.Sites AS s
+            ON sf.SamplingFeatureID = s.SamplingFeatureID
+            JOIN odm2.Actions AS ac
+            ON fa.ActionID = ac.ActionID
+            JOIN odm2.Methods AS me
+            ON ac.MethodID = me.MethodID
+            JOIN odm2.Units AS uv
+            ON r.UnitsID = uv.UnitsID
+            JOIN odm2.TimeSeriesResults AS tsr
+            ON r.ResultID = tsr.ResultID
+            JOIN odm2.ActionBy AS ab
+            ON ab.ActionID = ac.ActionID
+            JOIN odm2.Affiliations AS aff
+            ON ab.AffiliationID = aff.AffiliationID
+            JOIN odm2.Organizations AS o 
+            ON aff.OrganizationID = o.OrganizationID
+            LEFT JOIN odm2.Units AS ut
+            ON tsr.IntendedTimeSpacingUnitsID = ut.UnitsID
+            WHERE r.ValueCount >0;
+        """
+
+        connection_string = 'postgresql://{username}:{password}@{host}:{port}/{database}'
+        source_url = connection_string.format(**APP_SETTINGS.tsa_catalog_source)
+        from_conn = sqlalchemy.create_engine(source_url)
+        values = pd.read_sql(sqlalchemy.text(script), from_conn)
+        return values
