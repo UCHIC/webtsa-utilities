@@ -13,7 +13,7 @@ class Common(object):
     def __init__(self, args):
         self.script_name = os.path.basename(args[0])[:-3]
         self.DEBUG = True if '--debug' in args else False
-        self.VERBOSE = True if '--verbose' in args or self.DEBUG else False
+        self.VERBOSE = True if '--verbose' in args else False
 
         """
         General constants and non-class variables

@@ -18,10 +18,10 @@ from Tools.QueryDriver import iUtahDriver, WebSDLDriver, QueryDriver
 
 class InfluxUpdater:
     def __init__(self, wof_driver, influx_client):
-        print "Test statement"
         self.query_driver = wof_driver
         self.influx_client = influx_client
-        print self.influx_client.GetDatabases()
+        if APP_SETTINGS.VERBOSE:
+            print self.influx_client.GetDatabases()
 
     def GetSiteCodes(self):
         all_sites_xml = self.query_driver.GetAllSites()
@@ -32,7 +32,8 @@ class InfluxUpdater:
         redbutte_site_xml = self.query_driver.GetSiteInfo(site_code)
         if redbutte_site_xml is not None:
             site_details = WaterMLParser.ExtractSiteDetails(redbutte_site_xml)
-            print site_details
+            if APP_SETTINGS.VERBOSE:
+                print site_details
             return site_details
         else:
             print 'Site query failed'
@@ -79,7 +80,8 @@ class InfluxUpdater:
 
     def RunQuery(self, query_string):
         # encoded_string = urllib.quote(query_string, safe='')
-        print query_string
+        if APP_SETTINGS.VERBOSE:
+            print query_string
         query_response = requests.get(query_string)
         if '200' not in str(query_response.status_code):
             print 'Response was not successful: {}'.format(query_response.status_code)
@@ -118,6 +120,7 @@ class InfluxUpdater:
         for url in influx_urls:
             print url
         return
+
 
 if __name__ == '__main__':
     print 'Starting Influx Update tool'
