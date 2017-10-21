@@ -21,7 +21,7 @@ def update_catalog():
             o.OrganizationName AS "SourceOrganization", o.OrganizationDescription AS "SourceDescription", 
             ac.BeginDateTime AS "BeginDateTime", ac.EndDateTime AS "EndDateTime", 
             ac.BeginDateTimeUTCOffset AS "UTCOffset", r.ValueCount AS "NumberObservations", 
-            ac.EndDateTime AS "DateLastUpdated", 1 AS "IsActive", r.resultuuid AS "ResultUUID",
+            tsrvalues.max AS "DateLastUpdated", 1 AS "IsActive", r.resultuuid AS "ResultUUID",
             ('http://envirodiysandbox.usu.edu/wofpy/rest/1_1/GetValues?' || 
             'location=wofpy:' || sf.SamplingFeatureCode || '&variable=wofpy:' || v.VariableCode || '&methodCode=' || 
             CAST(me.MethodID AS varchar(15)) || '&sourceCode=' || CAST(o.OrganizationID AS varchar(15)) || 
@@ -48,6 +48,9 @@ def update_catalog():
         ON r.UnitsID = uv.UnitsID
         JOIN odm2.TimeSeriesResults AS tsr
         ON r.ResultID = tsr.ResultID
+        JOIN (SELECT DISTINCT ON (resultid) resultid, MAX(valuedatetime) 
+              FROM odm2.TimeSeriesResultValues GROUP BY resultid) AS tsrvalues
+        ON r.ResultID = tsrvalues.resultid
         JOIN odm2.ActionBy AS ab
         ON ab.ActionID = ac.ActionID
         JOIN odm2.Affiliations AS aff
