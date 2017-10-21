@@ -22,6 +22,10 @@ class InfluxClient(object):
     def CreateDatabase(self, database_name):
         self.client.create_database(database_name)
 
+    def DeleteAllSeriesInDatabase(self):
+        query = 'Drop series WHERE "" = \'\''
+        self.RunQuery(query, 'everything gets deleted')
+
     @staticmethod
     def GetIdentifier(site_code, var_code, qc_id, source_id, method_id):
         """
@@ -69,19 +73,26 @@ class InfluxClient(object):
             return None
         identifier = self.GetIdentifierBySeriesDetails(series)
         print 'Writing data points for ' + identifier
-        write_success = self.client.write_points(series.datavalues, identifier, protocol='json', batch_size=20000)
+        write_success = self.client.write_points(series.datavalues, identifier, protocol='json', batch_size=10000)
         if not write_success:
             print 'Write failed for series with identifier {}'.format(identifier)
         else:
             print '{} Data points written for time series with identifier {}'.format(len(series.datavalues), identifier)
 
     def AddDataFrameToDatabase(self, datavalues, identifier):
-        print 'Writing data points for ' + identifier
-        write_success = self.client.write_points(datavalues, identifier, protocol='json', batch_size=20000)
-        if not write_success:
-            print 'Write failed for series with identifier {}'.format(identifier)
-        else:
-            print '{} Data points written for time series with identifier {}'.format(len(datavalues), identifier)
+        try:
+            print 'Writing {} data points for {}'.format(len(datavalues), identifier)
+            write_success = self.client.write_points(datavalues, identifier, protocol='json', batch_size=10000)
+            if not write_success:
+                print 'Write failed for series with identifier {}'.format(identifier)
+            else:
+                print '{} Data points written for time series with identifier {}'.format(len(datavalues), identifier)
+            return len(datavalues)
+        except InfluxDBClientError as e:
+            print 'Error while writing to database {}: {}'.format(identifier, e.message)
+            print datavalues
+            return 0
+
 
     def GetTimeSeriesBySeriesDetails(self, series, start='', end=''):
         return self.GetTimeSeries(series.site_code, series.variable_code, series.qc_code, series.source_code,

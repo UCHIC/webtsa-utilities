@@ -18,8 +18,8 @@ from Tools.QueryDriver import iUtahDriver, WebSDLDriver, QueryDriver
 
 class InfluxUpdater:
     def __init__(self, wof_driver, influx_client):
-        self.query_driver = wof_driver
-        self.influx_client = influx_client
+        self.query_driver = wof_driver        # type: WebSDLDriver
+        self.influx_client = influx_client    # type: InfluxClient
         if APP_SETTINGS.VERBOSE:
             print self.influx_client.GetDatabases()
 
@@ -92,13 +92,15 @@ class InfluxUpdater:
 
     def Start(self):
         values = self.query_driver.GetSitesFromCatalog()  # type: pandas.DataFrame
+        failed_identifiers = []
+        successful_identifiers = []
         print 'Got dataframe!'
         influx_urls = []
         for i in range(0, len(values)):
+            print '-------------'
             identifier = values.get_value(i, 'InfluxIdentifier')
             influx_url = values.get_value(i, 'GetDataInflux')
             influx_urls.append(influx_url)
-            data_url = values.get_value(i, 'GetDataURL')
             last_entry = influx_client.GetTimeSeriesEndTime(identifier)
             if last_entry is None:
                 begin_time = ''
@@ -106,20 +108,33 @@ class InfluxUpdater:
             else:
                 print 'Database entry found for this series, most recently updated at {}'.format(last_entry)
                 begin_time = (last_entry + datetime.timedelta(seconds=0)).strftime('%Y-%m-%dT%H:%M:%S')
-                end_time = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S')
-            result = self.RunQuery(data_url.format(begin_time, end_time))
-            time_series = WaterMLParser.ExtractTimeSeriesDataPoints(result)
+                end_time = ''
+
+            # time_series = self.query_driver.GetDataValues(values.get_value(i, 'ResultID'), begin_time, end_time)
+            time_series = self.query_driver.GetDataValues(values.get_value(i, 'ResultUUID'), begin_time, end_time)
             print 'Influx: {}'.format(influx_url)
+            print time_series
 
             if time_series is None:
                 print 'No data for time series'
                 continue
-            self.influx_client.AddDataFrameToDatabase(time_series, identifier)
-            del time_series
+            if len(time_series) > 0:
+                written = self.influx_client.AddDataFrameToDatabase(time_series, identifier)
+                if written == 0:
+                    failed_identifiers.append(identifier)
+                else:
+                    successful_identifiers.append(identifier)
+                del time_series
+            else:
+                print 'No new values for {}'.format(identifier)
 
-        for url in influx_urls:
-            print url
-        return
+        if APP_SETTINGS.VERBOSE:
+            for url in influx_urls:
+                print url
+            for identifier in successful_identifiers:
+                print 'Succeeded: {}'.format(identifier)
+            for identifier in failed_identifiers:
+                print 'Failed: {}'.format(identifier)
 
 
 if __name__ == '__main__':
