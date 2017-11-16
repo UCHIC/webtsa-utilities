@@ -29,7 +29,7 @@ class InfluxClient(object):
     @staticmethod
     def GetIdentifier(site_code, var_code, qc_id, source_id, method_id):
         """
-        InfluxDB Identifiers:
+        InfluxDB Identifiers for iUTAH only:
         For the following time series:
             Turbidity; Campbell_OBS-3+_Turb, 1, 67, 2
         Format as 'wof_{site_code}_{var_code}_{qc_id}_{source_id}_{method_id}'
@@ -57,6 +57,11 @@ class InfluxClient(object):
             return None
         return InfluxClient.GetIdentifier(series.site_code, series.variable_code, series.qc_id, series.source_id,
                                           series.method_id)
+
+    @staticmethod
+    def GetiUtahUrlQueryString(identifier):
+        return 'http://iutahinflux.uwrl.usu.edu:8086/query?u=web_client&p=password&db=iutah&q=' \
+               'SELECT%20%2A%20FROM%20%22{}%22'.format(identifier)
 
     def RunQuery(self, query_string, identifier):
         try:
@@ -92,7 +97,6 @@ class InfluxClient(object):
             print 'Error while writing to database {}: {}'.format(identifier, e.message)
             print datavalues
             return 0
-
 
     def GetTimeSeriesBySeriesDetails(self, series, start='', end=''):
         return self.GetTimeSeries(series.site_code, series.variable_code, series.qc_code, series.source_code,
@@ -130,12 +134,6 @@ class InfluxClient(object):
             return dataframe.first_valid_index().to_pydatetime()
         return None
 
-    # def GetTimeSeriesEndTime(self, site_code, var_code, qc_code, source_code, method_code):
-    #     identifier = self.GetIdentifier(site_code, var_code, qc_code, source_code, method_code)
-    #     print 'Getting end time for ' + identifier
-    #     query_string = 'Select last(DataValue), time from {identifier}'.format(identifier=identifier)
-    #     result = self.RunQuery(query_string, identifier)
-    #     if result is not None and len(result) == 1:
-    #         dataframe = result[identifier]  # type: pandas.DataFrame
-    #         return dataframe.first_valid_index().to_pydatetime()
-    #     return None
+
+if __name__ == '__main__':
+    print 'InfluxHelper.py is not an executable program'
