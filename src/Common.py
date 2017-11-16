@@ -11,6 +11,10 @@ import sys
 
 class Common(object):
     def __init__(self, args):
+        if '--help' in args or '-h' in args:
+            Common.print_usage()
+            exit()
+
         self.script_name = os.path.basename(args[0])[:-3]
         self.DEBUG = True if '--debug' in args else False
         self.VERBOSE = True if '--verbose' in args else False
@@ -29,15 +33,40 @@ class Common(object):
         InitializeDirectories([self.LOGFILE_DIR])
         CustomLogger(self.LOGFILE_DIR, self.script_name, debug_mode=self.DEBUG)
 
+        self.credentials = {}  # type: dict[Credentials]
+        self.update_catalogs = False if '--skip_catalog_update' in args else True
+        self.update_influx = False if '--skip_influx_update' in args else True
+
         with open(self.PROJECT_DIR + '/settings.json') as settings_file:
             data = json.load(settings_file)
-            self.influx_credentials = data['influx']
-            self.tsa_catalog_source = data['tsa_catalog_source']
-            self.tsa_catalog_destination = data['tsa_catalog_destination']
+            for key in data.keys():
+                self.credentials[key] = Credentials(key, data[key]['influx'], data[key]['tsa_catalog_source'],
+                                                    data[key]['tsa_catalog_destination'])
 
     def dump_settings(self):
         for key in self.__dict__:
             print '{:<35} {}'.format(str(key) + ':', self.__dict__[key])
+
+    @staticmethod
+    def print_usage():
+        print """
+        WebTSARunner optional arguments:
+            --debug:                Run in debug mode
+            --verbose:              Run with more output
+            --skip_catalog_update:  Do not update TSA Catalogs
+            --skip_influx_update:   Do not update InfluxDB datavalues
+        """
+
+
+class Credentials(object):
+    def __init__(self, name, influx, tsa_source, tsa_destination):
+        self.name = name
+        self.influx_credentials = influx
+        self.tsa_catalog_source = tsa_source
+        self.tsa_catalog_destination = tsa_destination
+
+    def __str__(self):
+        return '<Credential: {}>'.format(self.name)
 
 
 def InitializeDirectories(directory_list):

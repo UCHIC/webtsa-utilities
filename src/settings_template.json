@@ -1,23 +1,75 @@
 {
-  "influx": {
-    "host": "localhost",
-    "port": 8086,
-    "username": "test_tsa",
-    "password": "somethingarbitrary",
-    "database": "tsa"
+  "envirodiy": {
+    "influx": {
+      "host": "localhost",
+      "port": 8086,
+      "username": "test_tsa",
+      "password": "somethingarbitrary",
+      "database": "tsa"
+    },
+    "tsa_catalog_source": {
+      "host": "localhost",
+      "port": 8086,
+      "username": "test_tsa",
+      "password": "somethingarbitrary",
+      "database": "tsa"
+    },
+    "tsa_catalog_destination": {
+      "host": "localhost",
+      "port": 8086,
+      "username": "test_tsa",
+      "password": "somethingarbitrary",
+      "database": "tsa"
+    }
   },
-  "tsa_catalog_source": {
-    "host": "localhost",
-    "port": 8086,
-    "username": "test_tsa",
-    "password": "somethingarbitrary",
-    "database": "tsa"
+  "iUTAH_Logan_OD": {
+    "influx": {
+      "host": "localhost",
+      "port": 8086,
+      "username": "test_tsa",
+      "password": "somethingarbitrary",
+      "database": "iutah"
+    },
+    "tsa_catalog_source": {
+      "engine": "mssql",
+      "username": "name_of_user",
+      "port": 1433,
+      "password": "somethingarbitrary",
+      "host": "iutahdbs.uwrl.usu.edu",
+      "database": "iUTAH_Logan_OD"
+    },
+    "tsa_catalog_destination": {
+      "engine": "postgresql",
+      "host": "localhost",
+      "port": 5432,
+      "username": "name_of_user",
+      "password": "somethingarbitrary",
+      "database": "tsa_catalog"
+    }
   },
-  "tsa_catalog_destination": {
-    "host": "localhost",
-    "port": 8086,
-    "username": "test_tsa",
-    "password": "somethingarbitrary",
-    "database": "tsa"
+  "iUTAH_RedButte_OD": {
+    "influx": {
+      "host": "localhost",
+      "port": 8086,
+      "username": "name_of_user",
+      "password": "somethingarbitrary",
+      "database": "iutah"
+    },
+    "tsa_catalog_source": {
+      "engine": "mssql",
+      "username": "name_of_user",
+      "port": 1433,
+      "password": "somethingarbitrary",
+      "host": "iutahdbs.uwrl.usu.edu",
+      "database": "iUTAH_RedButte_OD"
+    },
+    "tsa_catalog_destination": {
+      "engine": "postgresql",
+      "host": "localhost",
+      "port": 5432,
+      "username": "name_of_user",
+      "password": "somethingarbitrary",
+      "database": "tsa_catalog"
+    }
   }
 }
