@@ -4,6 +4,7 @@ import urllib
 import pandas as pd
 import psycopg2
 from Common import APP_SETTINGS
+from SqlSnippets import SqlSnippets, EnvirodiyDataSeriesSnippets, iUtahSqlSnippets
 import sqlalchemy
 
 class QueryDriver(object):
@@ -92,6 +93,42 @@ class iUtahDriver(QueryDriver):
     def GetVariableInfo(self, variable_code):
         return self._base_GetVariableInfo(dict(var=variable_code))
 
+    def GetDataValues(self, result_id, start='', end=''):
+        # type: () -> pd.DataFrame
+
+        script = """   
+            SELECT tsrv.datavalue AS "DataValue", tsrv.valuedatetimeutcoffset AS "UTCOffset", 
+                   tsrv.valuedatetime AS "DateTime"
+            FROM odm2.timeseriesresultvalues as tsrv
+            JOIN odm2.results as r on r.resultid = tsrv.resultid
+            WHERE r.resultuuid = \'{}\'::uuid""".format(result_id)
+        if len(start) > 0:
+            script += ' AND valuedatetime > \'{}\'::timestamp'.format(start)
+        if len(end) > 0:
+            script += ' AND valuedatetime < \'{}\'::timestamp'.format(end)
+        script += ';'
+
+        if APP_SETTINGS.VERBOSE:
+            print script
+
+        connection_string = 'postgresql://{username}:{password}@{host}:{port}/{database}'
+        source_url = connection_string.format(**APP_SETTINGS.tsa_catalog_source)
+        from_conn = sqlalchemy.create_engine(source_url)
+        values = pd.read_sql(sqlalchemy.text(script), from_conn, coerce_float=True)
+        values['DateTime'] = pandas.to_datetime(values['DateTime'])
+        values.set_index(['DateTime'], inplace=True)
+        values['DataValue'] = pandas.to_numeric(values['DataValue'], errors='coerce')
+        values['UTCOffset'] = pandas.to_numeric(values['UTCOffset'], errors='coerce')
+        values.dropna(how='any', inplace=True)
+        return values
+
+    def GetSitesFromCatalog(self, sql_snippets, connection_string):
+        # type: () -> pd.DataFrame
+        source_connection = sqlalchemy.create_engine(connection_string)
+        values = pd.read_sql(sqlalchemy.text(sql_snippets.get_sites), source_connection)
+        return values
+
+
 
 class WebSDLDriver(QueryDriver):
     def __init__(self):
@@ -146,45 +183,8 @@ class WebSDLDriver(QueryDriver):
         values.dropna(how='any', inplace=True)
         return values
 
-    def GetSitesFromCatalog(self):
+    def GetSitesFromCatalog(self, sql_snippets, connection_string):
         # type: () -> pd.DataFrame
-        script = """   
-            SELECT r.resultid AS "ResultID", r.resultuuid AS "ResultUUID",
-                ('http://wpfdbs.uwrl.usu.edu:8086/query?u=web_client&p=password&db=envirodiy&q=SELECT%20%2A%20FROM%20'||
-                '%22uuid_' || replace( cast(r.resultuuid AS TEXT), '-', '_' ) || '%22') AS "GetDataInflux", 
-                'uuid_' || replace( cast(r.resultuuid AS TEXT), '-', '_' ) AS "InfluxIdentifier"
-            FROM odm2.results AS r
-            JOIN odm2.variables AS v 
-            ON r.VariableID = v.VariableID
-            JOIN odm2.ProcessingLevels AS pl
-            ON r.ProcessingLevelID = pl.ProcessingLevelID
-            JOIN odm2.FeatureActions AS fa
-            ON r.FeatureActionID = fa.FeatureActionID
-            JOIN odm2.SamplingFeatures AS sf
-            ON fa.SamplingFeatureID = sf.SamplingFeatureID
-            JOIN odm2.Sites AS s
-            ON sf.SamplingFeatureID = s.SamplingFeatureID
-            JOIN odm2.Actions AS ac
-            ON fa.ActionID = ac.ActionID
-            JOIN odm2.Methods AS me
-            ON ac.MethodID = me.MethodID
-            JOIN odm2.Units AS uv
-            ON r.UnitsID = uv.UnitsID
-            JOIN odm2.TimeSeriesResults AS tsr
-            ON r.ResultID = tsr.ResultID
-            JOIN odm2.ActionBy AS ab
-            ON ab.ActionID = ac.ActionID
-            JOIN odm2.Affiliations AS aff
-            ON ab.AffiliationID = aff.AffiliationID
-            JOIN odm2.Organizations AS o 
-            ON aff.OrganizationID = o.OrganizationID
-            LEFT JOIN odm2.Units AS ut
-            ON tsr.IntendedTimeSpacingUnitsID = ut.UnitsID
-            WHERE r.ValueCount > 0;
-        """
-
-        connection_string = 'postgresql://{username}:{password}@{host}:{port}/{database}'
-        source_url = connection_string.format(**APP_SETTINGS.tsa_catalog_source)
-        from_conn = sqlalchemy.create_engine(source_url)
-        values = pd.read_sql(sqlalchemy.text(script), from_conn)
+        source_connection = sqlalchemy.create_engine(connection_string)
+        values = pd.read_sql(sqlalchemy.text(sql_snippets.get_sites), source_connection)
         return values

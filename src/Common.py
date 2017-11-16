@@ -29,15 +29,32 @@ class Common(object):
         InitializeDirectories([self.LOGFILE_DIR])
         CustomLogger(self.LOGFILE_DIR, self.script_name, debug_mode=self.DEBUG)
 
+        self.credentials = {}  # type: dict[Credentials]
+        self.update_catalogs = False
+        # self.update_catalogs = True
+        self.update_influx = True
+        # self.update_influx = False
+
         with open(self.PROJECT_DIR + '/settings.json') as settings_file:
             data = json.load(settings_file)
-            self.influx_credentials = data['influx']
-            self.tsa_catalog_source = data['tsa_catalog_source']
-            self.tsa_catalog_destination = data['tsa_catalog_destination']
+            for key in data.keys():
+                self.credentials[key] = Credentials(key, data[key]['influx'], data[key]['tsa_catalog_source'],
+                                                    data[key]['tsa_catalog_destination'])
 
     def dump_settings(self):
         for key in self.__dict__:
             print '{:<35} {}'.format(str(key) + ':', self.__dict__[key])
+
+
+class Credentials(object):
+    def __init__(self, name, influx, tsa_source, tsa_destination):
+        self.name = name
+        self.influx_credentials = influx
+        self.tsa_catalog_source = tsa_source
+        self.tsa_catalog_destination = tsa_destination
+
+    def __str__(self):
+        return '<Credential: {}>'.format(self.name)
 
 
 def InitializeDirectories(directory_list):

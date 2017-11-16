@@ -140,7 +140,7 @@ class InfluxUpdater:
 if __name__ == '__main__':
     print 'Starting Influx Update tool'
     influx_client = InfluxClient(**APP_SETTINGS.influx_credentials)
-    updater = InfluxUpdater(WebSDLDriver(), influx_client)
+    updater = InfluxUpdater(iUtahDriver(), influx_client)
     updater.Start()
 
     for identifier, message in updater.influx_client.query_errors.iteritems():
