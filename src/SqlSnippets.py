@@ -93,6 +93,11 @@ QualityControlLevelExplanation,
 sc.Organization AS SourceOrganization, sc.SourceDescription,
 sc.BeginDateTime, sc.EndDateTime, DATEDIFF(hh,sc.BeginDateTimeUTC,sc.BeginDateTime) AS UTCOffset,
 sc.ValueCount AS NumberObservations, sc.EndDateTime AS DateLastUpdated, 1 AS IsActive,
+'00000000-0000-0000-0000-000000000000' AS "ResultUUID",
+('http://data.iutahepscor.org/{wof}/REST/waterml_1_1.svc/datavalues?' +
+'location=iutah:' + sc.SiteCode + '&variable=iutah:' + sc.VariableCode + '/methodCode=' + CAST(sc.MethodID AS 
+VARCHAR(15)) + '/sourceCode=' + CAST(sc.SourceID AS VARCHAR(15)) + '/qualityControlLevelCode=' + CAST(sc.QualityControlLevelID AS 
+VARCHAR(15)) + '&startDate=&endDate=') AS GetDataURL, 
 ('http://iutahinflux.uwrl.usu.edu:8086/query?u=web_client&p=password&db=iutah&q=SELECT%20%2A%20FROM%20' 
 + '%22wof_' + sc.SiteCode + '_' + v.VariableCode + '_' + qc.QualityControlLevelCode + '_' + 
 CAST(sc.SourceID AS VARCHAR(15)) + '_' + CAST(sc.MethodID AS VARCHAR(15)) + '%22') AS GetDataInflux,
