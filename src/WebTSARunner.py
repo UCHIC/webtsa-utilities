@@ -47,7 +47,7 @@ if __name__ == '__main__':
     bad_identifiers = []
 
     for credential in APP_SETTINGS.credentials.values():  # type: Credentials
-        sql_snippets = SqlSnippets.GetSqlSnippets(credential.name)
+        sql_snippets = SqlSnippets.GetSqlSnippets(credential)
         if APP_SETTINGS.update_catalogs:
             print 'Updating the TSA catalog'
             do_purge = False if (iutah_catalog_purged and 'iutah' in credential.name.lower()) else True
@@ -66,6 +66,8 @@ if __name__ == '__main__':
             insert_into_catalog(destination_catalog_str, catalog_table)
             del catalog_table
 
+    for credential in APP_SETTINGS.credentials.values():  # type: Credentials
+        sql_snippets = SqlSnippets.GetSqlSnippets(credential)
         if APP_SETTINGS.update_influx:
             print 'Updating influx DB'
             influx_client = InfluxClient(**credential.influx_credentials)
