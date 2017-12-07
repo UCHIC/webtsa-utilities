@@ -44,8 +44,14 @@ class InfluxClient(object):
             pre_identifier = 'wof_{}_{}_{}_{}_{}'.format(site_code, var_code, qc_id, source_id, method_id)
             return re.sub('[\W]', '_', urllib.quote(pre_identifier, safe=''))
         """
+
         pre_identifier = 'wof_{}_{}_{}_{}_{}'.format(site_code, var_code, qc_id, source_id, method_id)
         return re.sub('[\W]', '_', urllib.quote(pre_identifier, safe=''))
+
+    @staticmethod
+    def GetUSGSIdentifier(site_code, variable, source, param):
+        pre_identifier = 'usgs_{}_{}_{}_{}'.format(site_code, variable, source, param)
+        return re.sub('[\W]', '_', urllib.quote(" ".join(pre_identifier.split()), safe=''))
 
     @staticmethod
     def GetEnviroDiyIdentifier(result_uuid):
@@ -126,7 +132,6 @@ class InfluxClient(object):
         return None
 
     def GetTimeSeriesEndTime(self, identifier):
-        print 'Getting end time for ' + identifier
         query_string = 'Select last(DataValue), time from {identifier}'.format(identifier=identifier)
         result = self.RunQuery(query_string, identifier)
         if result is not None and len(result) == 1:
