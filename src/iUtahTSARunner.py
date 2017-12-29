@@ -1,5 +1,6 @@
 import pandas
 import sqlalchemy
+import time
 
 from Common import Credentials, APP_SETTINGS
 from InfluxHelper import *
@@ -65,7 +66,14 @@ if __name__ == '__main__':
         sql_snippets = SqlSnippets.GetSqlSnippets(credential)
         do_purge = False if (iutah_catalog_purged and 'iutah' in credential.name.lower()) else True
         source_catalog_str = build_connection_string(**credential.tsa_catalog_source)
-        catalog_table = pandas.read_sql(sqlalchemy.text(sql_snippets.compile_dataseries), source_catalog_str)
+        catalog_retries = 5
+        catalog_table = pandas.DataFrame()
+        while len(catalog_table) == 0 and catalog_retries > 0:
+            catalog_table = pandas.read_sql(sqlalchemy.text(sql_snippets.compile_dataseries), source_catalog_str)
+            print 'Catalog query returned {} results for {}'.format(len(catalog_table), credential.name)
+            catalog_retries -= 1
+            # time.sleep(3)
+
         destination_catalog_str = build_connection_string(**credential.tsa_catalog_destination)
         if do_purge:
             print 'Purging catalog for ' + credential.name
@@ -73,7 +81,7 @@ if __name__ == '__main__':
 
         iutah_catalog_purged = True
         catalog_table = sanitize_iutah_identifiers(catalog_table)
-        print 'Inserting {} records from {} into catalog'.format(len(catalog_table), credential.name)
+        print 'Inserting records from {} into catalog'.format(credential.name)
         insert_into_catalog(destination_catalog_str, catalog_table)
         del catalog_table
 

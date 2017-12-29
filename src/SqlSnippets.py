@@ -22,7 +22,7 @@ SELECT
     "MethodDescription", 
     uv.UnitsName AS "VariableUnitsName", uv.UnitsTypeCV AS "VariableUnitsType", 
     uv.UnitsAbbreviation AS "VariableUnitsAbbreviation",r.SampledMediumCV AS "SampleMedium", 
-    'Field Observation' AS "ValueType", tsr.AggregationstatisticCV AS "DataType", 
+    'Field Observation' AS "ValueType", tsr.AggregationstatisticCV AS "DataType", v.NoDataValue as "NoDataValue",
     v.VariableTypeCV AS "GeneralCategory", tsr.IntendedTimeSpacing AS "TimeSupport", 
     ut.UnitsName AS "TimeSupportUnitsName", ut.UnitsTypeCV AS "TimeSupportUnitsType", 
     ut.UnitsAbbreviation AS "TimeSupportUnitsAbbreviation", pl.ProcessingLevelCode AS 
@@ -85,7 +85,7 @@ SELECT {source_id} AS SourceDataServiceID, '{network}' AS Network, sc.SiteCode, 
 s.County, s.SiteType,
 v.VariableCode, v.VariableName, vl.VariableLevel, sc.MethodDescription,
 uv.UnitsName AS VariableUnitsName, uv.UnitsType AS VariableUnitsType, uv.UnitsAbbreviation AS VariableUnitsAbbreviation,
-v.SampleMedium, v.ValueType, v.DataType, v.GeneralCategory, v.TimeSupport,
+v.SampleMedium, v.ValueType, v.DataType, v.GeneralCategory, v.TimeSupport,  v.NoDataValue as "NoDataValue",
 ut.UnitsName AS TimeSupportUnitsName, ut.UnitsType AS TimeSupportUnitsType, ut.UnitsAbbreviation AS 
 TimeSupportUnitsAbbreviation,
 qc.QualityControlLevelCode, qc.Definition AS QualityControlLevelDefinition, qc.Explanation AS 

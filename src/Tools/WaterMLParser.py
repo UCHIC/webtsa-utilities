@@ -127,6 +127,8 @@ class WaterMLParser:
             print 'Could not find timeSeries'
             return None
         try:
+            no_data_value = soup.find('ns1:noDataValue').contents[0]
+            print no_data_value
             values_node = soup.find('ns1:values')
             values = [(dv.contents[0], re.sub('[T]', ' ', dv.attrs['dateTime'][:19]), dv.attrs['dateTime'][-6:]) for dv
                       in values_node.children if type(dv) == Tag and 'dateTime' in dv.attrs]

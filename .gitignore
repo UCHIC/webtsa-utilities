@@ -2,6 +2,7 @@
 src/logs
 scratch_file.py
 settings.json
+*.bak
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template
