@@ -1,6 +1,7 @@
 import pandas
 import sqlalchemy
 import time
+import numpy as np
 
 from Common import Credentials, APP_SETTINGS
 from InfluxHelper import *
@@ -12,8 +13,8 @@ def process_dataseries(connection_string, sql_string):
     values = pandas.read_sql(sqlalchemy.text(sql_string), source_connection, coerce_float=True)
     values['DateTime'] = pandas.to_datetime(values['DateTime'])
     values.set_index(['DateTime'], inplace=True)
-    values['DataValue'] = pandas.to_numeric(values['DataValue'], errors='coerce')
-    values['UTCOffset'] = pandas.to_numeric(values['UTCOffset'], errors='coerce')
+    values['DataValue'] = pandas.to_numeric(values['DataValue'], errors='coerce').astype(np.float64)
+    values['UTCOffset'] = pandas.to_numeric(values['UTCOffset'], errors='coerce').astype(np.float64)
     values.dropna(how='any', inplace=True)
     return values
 
